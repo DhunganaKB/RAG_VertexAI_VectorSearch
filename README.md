@@ -27,7 +27,12 @@ This design follows a common production-oriented retrieval flow:
 
 ## Architecture Overview
 
+### Ingestion Flow
+
 ![RAG Ingestion Flow](./images/SimpleVectorSearch_RAG_Ingest.png)
+
+### Retrieval Flow
+
 ![RAG Retrieval Flow](./images/SimpleVectorSearch_RAG_Ret.png)
 
 ## Design Summary
@@ -81,3 +86,21 @@ Planned direction includes:
 This repository is a work in progress and will be expanded with more RAG design patterns later.
 
 For now, `SimpleVectorSearch_RAG` serves as the initial reference implementation for a scalable Vertex AI-based RAG architecture.
+
+
+## How to RUN
+
+1. Clone the repository:
+
+   git clone https://github.com/DhunganaKB/RAG_VertexAI_VectorSearch.git
+
+2. Move into the repository root:
+
+   cd RAG_VertexAI_VectorSearch
+
+3. Go to the design folder you want to run:
+   cd SimpleVectorSearch_RAG
+
+4. Follow the setup and run instructions in that folder’s README.md.
+
+This repository is organized so that each RAG design has its own folder and its own local setup instructions. As more designs are added, you can enter the relevant folder and follow its dedicated README.md.

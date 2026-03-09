@@ -99,6 +99,7 @@ For now, `SimpleVectorSearch_RAG` serves as the initial reference implementation
    cd RAG_VertexAI_VectorSearch
 
 3. Go to the design folder you want to run:
+
    cd SimpleVectorSearch_RAG
 
 4. Follow the setup and run instructions in that folder’s README.md.

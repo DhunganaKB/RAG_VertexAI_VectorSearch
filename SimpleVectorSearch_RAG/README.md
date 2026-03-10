@@ -438,6 +438,14 @@ FastAPI is not running. In terminal 1:
 uvicorn app.main:app --reload --port 8000
 ```
 
+### Sample questions: 
+Currently, two sample PDF documents are included in the repository. To try out the RAG pipeline, you can use questions such as:
+
+What is Self-Organizing Maps?
+
+What is Distributed Signal Amplification?
+
+
 ### `/rag` returns an empty sources list
 Ingestion has not been run, or ran before the index was deployed. Check:
 ```bash

@@ -266,10 +266,10 @@ Edit `config.py` to change any settings:
 
 | Variable | Default | Description |
 |---|---|---|
-| `PROJECT_ID` | `deve-487713` | GCP project |
+| `PROJECT_ID` | `deve-0000` | GCP project |
 | `LOCATION` | `us-central1` | Region |
-| `COLLECTION_ID` | `collection-for-rag-demo` | VS2.0 Collection name |
-| `BUCKET_NAME` | `bucket-kamal-987` | GCS bucket |
+| `COLLECTION_ID` | `collection-for-demo` | VS2.0 Collection name |
+| `BUCKET_NAME` | `bucket-kamal-0000` | GCS bucket |
 | `INPUT_PREFIX` | `raw/` | GCS folder with documents |
 | `EMBEDDING_MODEL` | `text-embedding-005` | 768-dim embedding |
 | `GEMINI_MODEL` | `gemini-2.0-flash-001` | Generation model |

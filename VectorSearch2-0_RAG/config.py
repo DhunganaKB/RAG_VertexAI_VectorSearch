@@ -18,7 +18,7 @@ INPUT_PREFIX = "raw/"               # gs://bucket-kamal-987/raw/
 
 # ─── AI Models ────────────────────────────────────────────────────────────────
 EMBEDDING_MODEL = "text-embedding-005"   # 768-dim
-GEMINI_MODEL    = "gemini-2.0-flash-001"
+GEMINI_MODEL    = "gemini-2.5-flash"
 
 # ─── Chunking ─────────────────────────────────────────────────────────────────
 CHUNK_SIZE    = 1200

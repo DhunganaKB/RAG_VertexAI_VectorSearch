@@ -1,0 +1,26 @@
+# Airbnb Agentic RAG — dependencies
+# Install in the mcp conda environment:
+#   pip install -r requirements.txt
+
+# ── Vertex AI / GCP ──────────────────────────────────────────────────────────
+google-cloud-aiplatform>=1.60.0
+google-cloud-vectorsearch>=0.7.0
+google-cloud-storage>=2.0.0
+
+# ── Web API ───────────────────────────────────────────────────────────────────
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+pydantic>=2.0.0
+
+# ── Frontend ──────────────────────────────────────────────────────────────────
+streamlit>=1.35.0
+requests>=2.31.0
+
+# ── Cache ─────────────────────────────────────────────────────────────────────
+redis>=5.0.0                     # Cloud Memorystore for Redis client
+
+# ── Utilities ────────────────────────────────────────────────────────────────
+tqdm>=4.66.0
+
+# ── Load Testing (local only — not in Docker images) ─────────────────────────
+locust>=2.28.0

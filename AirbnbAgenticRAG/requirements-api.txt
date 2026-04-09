@@ -1,0 +1,28 @@
+# FastAPI backend — Cloud Run (airbnb-rag-api)
+# Install: pip install -r requirements-api.txt
+#
+# IMPORTANT: versions are pinned to match the local dev environment.
+# Unpinned ">=" constraints can pull incompatible versions of
+# google-cloud-aiplatform / google-cloud-vectorsearch in a fresh container
+# (protobuf/grpc descriptor conflicts → startup crash before port is bound).
+
+# ── Vertex AI / GCP ───────────────────────────────────────────────────────────
+google-cloud-aiplatform==1.128.0
+google-cloud-vectorsearch==0.7.0
+google-cloud-storage==2.19.0
+
+# ── Pinned transitive deps (gRPC/protobuf stability) ─────────────────────────
+protobuf==5.29.3
+grpcio==1.76.0
+proto-plus==1.26.1
+
+# ── Web API ───────────────────────────────────────────────────────────────────
+fastapi==0.123.10
+uvicorn[standard]==0.38.0
+pydantic==2.12.5
+
+# ── Cache ─────────────────────────────────────────────────────────────────────
+redis>=5.0.0
+
+# ── HTTP (used by eval runner when calling the deployed API) ──────────────────
+requests>=2.31.0

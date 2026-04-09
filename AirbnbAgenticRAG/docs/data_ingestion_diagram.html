@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Airbnb RAG — Data Ingestion Pipeline</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0b0f19;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 48px 24px 64px;
+    }
+
+    h1 {
+      color: #f1f5f9;
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      margin-bottom: 6px;
+    }
+    .sub {
+      color: #475569;
+      font-size: 12px;
+      margin-bottom: 52px;
+    }
+
+    /* ── Main pipeline column ── */
+    .pipeline {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      width: 100%;
+      max-width: 620px;
+    }
+
+    /* ── Node box ── */
+    .node {
+      width: 100%;
+      border-radius: 14px;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border: 1px solid transparent;
+      position: relative;
+    }
+
+    .node-icon {
+      font-size: 28px;
+      flex-shrink: 0;
+      width: 44px;
+      text-align: center;
+    }
+
+    .node-content { flex: 1; }
+
+    .node-label {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      margin-bottom: 3px;
+    }
+
+    .node-detail {
+      font-size: 11px;
+      opacity: 0.65;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    .node-tag {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 20px;
+      letter-spacing: 0.3px;
+      flex-shrink: 0;
+    }
+
+    /* ── Arrow connector ── */
+    .arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      position: relative;
+      z-index: 1;
+    }
+    .arrow-line {
+      width: 2px;
+      height: 28px;
+      background: linear-gradient(to bottom, #1e293b, #334155);
+    }
+    .arrow-head {
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 9px solid #334155;
+    }
+    .arrow-label {
+      font-size: 10px;
+      color: #475569;
+      position: absolute;
+      left: calc(50% + 12px);
+      top: 50%;
+      transform: translateY(-50%);
+      white-space: nowrap;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    /* ── Colour themes ── */
+
+    /* Source */
+    .t-source {
+      background: #111827;
+      border-color: #1f2937;
+      border-style: dashed;
+    }
+    .t-source .node-label { color: #94a3b8; }
+
+    /* Stage 0 — GCS */
+    .t-gcs {
+      background: #0d1f35;
+      border-color: #1e3a5f;
+    }
+    .t-gcs .node-label  { color: #60a5fa; }
+    .t-gcs .node-tag    { background: #1e3a5f; color: #60a5fa; }
+
+    /* Stage 1 — Collection */
+    .t-col {
+      background: #130d27;
+      border-color: #3730a3;
+    }
+    .t-col .node-label  { color: #a78bfa; }
+    .t-col .node-tag    { background: #2e1065; color: #a78bfa; }
+
+    /* Stage 2 — Ingest */
+    .t-ingest {
+      background: #0a1c10;
+      border-color: #166534;
+    }
+    .t-ingest .node-label { color: #4ade80; }
+    .t-ingest .node-tag   { background: #14532d; color: #4ade80; }
+
+    /* Stage 2 sub-steps */
+    .substeps {
+      display: flex;
+      gap: 8px;
+      margin: 6px 0 0 60px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      font-size: 10px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: #0f2a17;
+      border: 1px solid #166534;
+      color: #86efac;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+    .chip.highlight {
+      background: #1a3a22;
+      border-color: #4ade80;
+      color: #4ade80;
+      font-weight: 600;
+    }
+
+    /* Stage 3 — Index */
+    .t-index {
+      background: #1a1005;
+      border-color: #854d0e;
+    }
+    .t-index .node-label { color: #fbbf24; }
+    .t-index .node-tag   { background: #78350f; color: #fbbf24; }
+    .optional {
+      font-size: 10px;
+      background: #1c1410;
+      color: #78716c;
+      border: 1px solid #44403c;
+      border-radius: 10px;
+      padding: 2px 7px;
+      margin-left: 6px;
+    }
+
+    /* Serving */
+    .t-serve {
+      background: #061820;
+      border-color: #0e7490;
+    }
+    .t-serve .node-label { color: #22d3ee; }
+    .t-serve .node-tag   { background: #164e63; color: #22d3ee; }
+
+    /* ── Output pill between stages ── */
+    .output-pill {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 5px 14px;
+      font-size: 10px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      color: #64748b;
+      margin: -2px 0;
+      position: relative;
+      z-index: 2;
+    }
+    .output-pill span { color: #94a3b8; font-weight: 600; }
+
+    /* ── GCP service pills row ── */
+    .services {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .svc {
+      font-size: 9px;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+    .svc-blue   { background: #1e3a5f44; border: 1px solid #1e3a5f; color: #7dd3fc; }
+    .svc-purple { background: #2e106544; border: 1px solid #3730a3; color: #c4b5fd; }
+    .svc-green  { background: #14532d44; border: 1px solid #166534; color: #86efac; }
+    .svc-amber  { background: #78350f44; border: 1px solid #854d0e; color: #fde68a; }
+    .svc-cyan   { background: #164e6344; border: 1px solid #0e7490; color: #67e8f9; }
+
+    /* ── Serving flow (horizontal) ── */
+    .serve-flow {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-top: 10px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+    }
+    .serve-step {
+      background: #0c1a20;
+      border: 1px solid #0e7490;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 10px;
+      color: #67e8f9;
+      white-space: nowrap;
+    }
+    .serve-arrow {
+      color: #0e7490;
+      font-size: 14px;
+      padding: 0 4px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Airbnb Agentic RAG — Data Ingestion</h1>
+<p class="sub">Offline pipeline · Runs once · All stages idempotent</p>
+
+<div class="pipeline">
+
+  <!-- SOURCE -->
+  <div class="node t-source">
+    <div class="node-icon">📁</div>
+    <div class="node-content">
+      <div class="node-label">Source Data</div>
+      <div class="node-detail">listings.csv.gz &nbsp;·&nbsp; ~10k Airbnb listings</div>
+    </div>
+  </div>
+
+  <!-- ↓ -->
+  <div class="arrow">
+    <div class="arrow-line"></div>
+    <div class="arrow-head"></div>
+  </div>
+
+  <!-- STAGE 0 -->
+  <div class="node t-gcs">
+    <div class="node-icon">☁️</div>
+    <div class="node-content">
+      <div class="node-label">Upload to Cloud Storage</div>
+      <div class="node-detail">gs://your-gcs-bucket/data/listings.csv.gz</div>
+      <div class="services">
+        <span class="svc svc-blue">Cloud Storage</span>
+      </div>
+    </div>
+    <div class="node-tag">Stage 0</div>
+  </div>
+
+  <!-- ↓ -->
+  <div class="arrow">
+    <div class="arrow-line"></div>
+    <div class="arrow-head"></div>
+  </div>
+
+  <!-- STAGE 1 -->
+  <div class="node t-col">
+    <div class="node-icon">🗄️</div>
+    <div class="node-content">
+      <div class="node-label">Create VS 2.0 Collection</div>
+      <div class="node-detail">schema · 16 metadata fields · 768-dim embedding vector</div>
+      <div class="services">
+        <span class="svc svc-purple">Vector Search 2.0</span>
+        <span class="svc svc-purple">VectorSearchServiceClient</span>
+      </div>
+    </div>
+    <div class="node-tag">Stage 1</div>
+  </div>
+
+  <!-- ↓ -->
+  <div class="arrow">
+    <div class="arrow-line"></div>
+    <div class="arrow-head"></div>
+  </div>
+
+  <!-- STAGE 2 -->
+  <div class="node t-ingest">
+    <div class="node-icon">⚙️</div>
+    <div class="node-content">
+      <div class="node-label">Embed &amp; Ingest Listings</div>
+      <div class="node-detail">3,000 listings · batch 50 · retry on 429</div>
+      <div class="services">
+        <span class="svc svc-green">text-embedding-005</span>
+        <span class="svc svc-green">DataObjectServiceClient</span>
+        <span class="svc svc-blue">Cloud Storage</span>
+      </div>
+    </div>
+    <div class="node-tag">Stage 2</div>
+  </div>
+
+  <!-- sub-steps chips -->
+  <div class="substeps">
+    <span class="chip">① Parse CSV</span>
+    <span class="chip">② Build text</span>
+    <span class="chip highlight">③ Embed 768-dim</span>
+    <span class="chip">④ Batch upsert</span>
+  </div>
+
+  <!-- ↓ -->
+  <div class="arrow" style="margin-top:8px">
+    <div class="arrow-line"></div>
+    <div class="arrow-head"></div>
+  </div>
+
+  <!-- output pill -->
+  <div class="output-pill">
+    <span>~3,000 DataObjects</span> stored · metadata + embedding per object
+  </div>
+
+  <!-- ↓ -->
+  <div class="arrow">
+    <div class="arrow-line"></div>
+    <div class="arrow-head"></div>
+  </div>
+
+  <!-- STAGE 3 -->
+  <div class="node t-index">
+    <div class="node-icon">⚡</div>
+    <div class="node-content">
+      <div class="node-label">
+        Build ScaNN Index
+        <span class="optional">optional</span>
+      </div>
+      <div class="node-detail">DOT_PRODUCT · UNIT_L2_NORM · ~99% recall · sub-10ms</div>
+      <div class="services">
+        <span class="svc svc-amber">ScaNN ANN</span>
+        <span class="svc svc-amber">CreateIndex LRO</span>
+      </div>
+    </div>
+    <div class="node-tag">Stage 3</div>
+  </div>
+
+  <!-- ↓ -->
+  <div class="arrow">
+    <div class="arrow-line" style="height:36px; background: linear-gradient(to bottom,#1e293b,#0e7490aa)"></div>
+    <div class="arrow-head" style="border-top-color:#0e7490"></div>
+  </div>
+
+  <!-- SERVING -->
+  <div class="node t-serve">
+    <div class="node-icon">🔍</div>
+    <div class="node-content">
+      <div class="node-label">Ready to Serve — RAG Query</div>
+      <div class="serve-flow">
+        <span class="serve-step">Query</span>
+        <span class="serve-arrow">→</span>
+        <span class="serve-step">Embed</span>
+        <span class="serve-arrow">→</span>
+        <span class="serve-step">Search</span>
+        <span class="serve-arrow">→</span>
+        <span class="serve-step">Fetch metadata</span>
+        <span class="serve-arrow">→</span>
+        <span class="serve-step">Gemini</span>
+        <span class="serve-arrow">→</span>
+        <span class="serve-step">Answer</span>
+      </div>
+      <div class="services" style="margin-top:10px">
+        <span class="svc svc-cyan">DataObjectSearchServiceClient</span>
+        <span class="svc svc-cyan">Redis cache · 1hr TTL</span>
+        <span class="svc svc-cyan">Gemini 2.5 Flash</span>
+      </div>
+    </div>
+    <div class="node-tag">Serving</div>
+  </div>
+
+</div>
+
+</body>
+</html>

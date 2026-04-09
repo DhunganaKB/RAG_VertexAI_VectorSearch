@@ -1,0 +1,41 @@
+# ── Stage: FastAPI backend for Cloud Run ─────────────────────────────────────
+# Service name: airbnb-rag-api
+# Port: Cloud Run injects $PORT (default 8080)
+# VPC: requires Serverless VPC Access connector for Memorystore Redis
+# Auth: service account with roles/aiplatform.user + roles/storage.objectViewer
+#
+# Python 3.11 — matches the local dev environment where packages are tested.
+# Using 3.12 risks pulling incompatible versions of google-cloud-aiplatform
+# and google-cloud-vectorsearch (protobuf/gRPC descriptor conflicts).
+
+FROM python:3.11-slim
+
+# Flush Python output immediately — critical for Cloud Run log visibility
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# System deps for grpc / protobuf compilation
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Python dependencies first (layer cached unless requirements change)
+COPY requirements-api.txt .
+RUN pip install --no-cache-dir -r requirements-api.txt
+
+# Copy application source
+COPY config.py        ./config.py
+COPY app/             ./app/
+COPY agent/           ./agent/
+
+# Cloud Run sets PORT; default to 8080 if not provided
+ENV PORT=8080
+
+# Uvicorn: bind to 0.0.0.0:$PORT, single worker (Cloud Run scales via instances)
+CMD exec uvicorn app.main:app \
+    --host 0.0.0.0 \
+    --port $PORT \
+    --workers 1 \
+    --log-level info

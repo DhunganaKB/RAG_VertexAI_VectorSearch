@@ -1,0 +1,33 @@
+# ── Stage: Streamlit frontend for Cloud Run ───────────────────────────────────
+# Service name: airbnb-rag-ui
+# Port: Cloud Run injects $PORT (default 8080)
+# Env var required: RAG_API_URL=https://airbnb-rag-api-<hash>-uc.a.run.app
+# No VPC connector needed — UI calls API over public HTTPS
+
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Only UI dependencies — keeps image small (~200 MB)
+COPY requirements-ui.txt .
+RUN pip install --no-cache-dir -r requirements-ui.txt
+
+# Copy only the Streamlit app — no backend code needed
+COPY ui/streamlit_app.py ./ui/streamlit_app.py
+
+# Non-root user
+RUN adduser --disabled-password --gecos "" appuser
+USER appuser
+
+# Cloud Run sets PORT env var
+ENV PORT=8080
+
+# Streamlit must listen on 0.0.0.0:$PORT
+# --server.headless disables the "email" prompt on first run
+# --server.enableCORS false / enableXsrfProtection false are safe behind Cloud Run's IAP
+CMD exec streamlit run ui/streamlit_app.py \
+    --server.port=$PORT \
+    --server.address=0.0.0.0 \
+    --server.headless=true \
+    --server.enableCORS=false \
+    --server.enableXsrfProtection=false

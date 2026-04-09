@@ -1,0 +1,57 @@
+# Keep Docker build context lean — exclude everything not needed in containers
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Local data — never bake data into the image
+data/
+*.csv
+*.csv.gz
+*.json.gz
+
+# Notebooks — not needed in runtime containers
+notebooks/
+*.ipynb
+.ipynb_checkpoints/
+
+# Eval results — stored in GCS, not in image
+eval/results/
+
+# Images / diagrams — not needed at runtime
+images/
+
+# Docs and HTML articles
+*.html
+!ui/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Scripts (ingestion scripts — not part of the API or UI runtime)
+scripts/
+
+# Load test files — local only, never in containers
+load_test/
+
+# CI/CD config (not needed inside the container)
+cloudbuild.yaml
+deploy.sh

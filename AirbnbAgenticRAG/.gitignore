@@ -1,0 +1,68 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── Environment / secrets ─────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+service-account*.json
+*-credentials.json
+application_default_credentials.json
+
+# ── Jupyter notebooks ─────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── GCP / gcloud ─────────────────────────────────────────────────────────────
+.gcloud/
+gcloud-service-key.json
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+.docker/
+
+# ── Load test results (generated at runtime) ─────────────────────────────────
+load_test/results/*.html
+load_test/results/*.csv
+load_test/results/*.json
+!load_test/results/.gitkeep
+
+# ── Eval results (uploaded to GCS, not stored locally) ────────────────────────
+eval/results/
+*.eval_cache/
+
+# ── Local data files (CSV raw data — use GCS instead) ────────────────────────
+inputdata/*.csv
+inputdata/*.csv.gz
+inputdata/*.parquet
+!inputdata/.gitkeep
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+*.log
+tmp/
+.tmp/
+.deepeval

@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AirbnbAgenticRAG — Run Guide</title>
+<style>
+:root {
+  --bg:      #F8FAFC;
+  --surface: #FFFFFF;
+  --border:  #E2E8F0;
+  --text:    #1E293B;
+  --muted:   #64748B;
+  --accent:  #4F46E5;
+  --green:   #16A34A;
+  --amber:   #D97706;
+  --red:     #DC2626;
+  --purple:  #7C3AED;
+  --teal:    #0F766E;
+  --code-bg: #1E293B;
+  --code-fg: #E2E8F0;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.7; }
+
+/* Layout */
+.layout { display: flex; min-height: 100vh; }
+nav { width: 240px; min-width: 240px; background: var(--surface);
+  border-right: 1px solid var(--border); padding: 24px 0;
+  position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+main { flex: 1; max-width: 860px; padding: 40px 48px; }
+
+/* Nav */
+.nav-logo { padding: 0 16px 16px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+.nav-logo h2 { font-size: 13px; font-weight: 700; color: var(--accent); }
+.nav-logo p  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+nav a { display: block; padding: 5px 16px; font-size: 12.5px; color: var(--muted);
+  text-decoration: none; border-left: 3px solid transparent; transition: all .15s; }
+nav a:hover, nav a.active { color: var(--accent); border-left-color: var(--accent); background: #EEF2FF; }
+.nav-section { font-size: 10px; font-weight: 700; color: #94A3B8;
+  text-transform: uppercase; letter-spacing: .8px; padding: 10px 16px 3px; }
+
+/* Typography */
+h1 { font-size: 26px; font-weight: 800; margin-bottom: 6px; color: var(--accent); }
+h2 { font-size: 19px; font-weight: 700; margin: 36px 0 10px;
+     padding-bottom: 7px; border-bottom: 2px solid var(--border); }
+h3 { font-size: 15px; font-weight: 700; margin: 20px 0 6px; color: var(--purple); }
+h4 { font-size: 13.5px; font-weight: 600; margin: 14px 0 5px; color: var(--teal); }
+p  { margin-bottom: 10px; }
+ul, ol { margin: 6px 0 10px 22px; }
+li { margin-bottom: 3px; }
+a  { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* Code */
+code { background: #E8EDF5; border-radius: 4px; padding: 1px 5px;
+  font-size: 12.5px; font-family: "SF Mono","Fira Code",monospace; color: #6B21A8; }
+pre { background: var(--code-bg); color: var(--code-fg); border-radius: 8px;
+  padding: 16px 18px; overflow-x: auto; font-size: 12.5px; line-height: 1.6;
+  margin: 10px 0 18px; font-family: "SF Mono","Fira Code",monospace; }
+pre .comment { color: #64748B; }
+pre .kw      { color: #93C5FD; }
+pre .str     { color: #86EFAC; }
+pre .val     { color: #FCA5A5; }
+pre .cmd     { color: #FDE68A; }
+
+/* Callouts */
+.callout { border-radius: 8px; padding: 12px 16px; margin: 14px 0; border-left: 4px solid; }
+.callout.info    { background: #EFF6FF; border-color: #3B82F6; }
+.callout.warn    { background: #FFFBEB; border-color: var(--amber); }
+.callout.success { background: #F0FDF4; border-color: var(--green); }
+.callout.tip     { background: #FAF5FF; border-color: var(--purple); }
+.callout-title   { font-weight: 700; font-size: 12.5px; margin-bottom: 3px; }
+.callout.info    .callout-title { color: #1D4ED8; }
+.callout.warn    .callout-title { color: #B45309; }
+.callout.success .callout-title { color: var(--green); }
+.callout.tip     .callout-title { color: var(--purple); }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; margin: 10px 0 18px; font-size: 13.5px; }
+th { background: #1E293B; color: white; padding: 9px 13px; text-align: left; font-size: 12.5px; }
+td { padding: 8px 13px; border-bottom: 1px solid var(--border); vertical-align: top; }
+tr:hover td { background: #F1F5F9; }
+
+/* Architecture */
+.arch { background: #1E293B; color: #E2E8F0; border-radius: 10px; padding: 20px 22px;
+  font-family: "SF Mono","Fira Code",monospace; font-size: 12.5px; line-height: 1.8; margin: 14px 0; }
+
+/* Hero */
+.hero { background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+  color: white; border-radius: 12px; padding: 28px 32px; margin-bottom: 28px; }
+.hero h1 { color: white; font-size: 28px; }
+.hero p  { color: rgba(255,255,255,.85); font-size: 15px; margin: 6px 0 0; }
+.hero .badges { margin-top: 14px; display: flex; gap: 7px; flex-wrap: wrap; }
+.hero .badge  { background: rgba(255,255,255,.2); border-radius: 20px;
+  padding: 3px 11px; font-size: 11.5px; font-weight: 600; }
+
+/* GCP badges */
+.gcpbadge { display: inline-flex; align-items: center; background: #EFF6FF;
+  border: 1px solid #BFDBFE; border-radius: 20px; padding: 2px 9px;
+  font-size: 11.5px; font-weight: 600; color: #1D4ED8; margin: 2px; }
+
+/* Step header */
+.step-header { display: flex; align-items: center; gap: 12px; margin: 36px 0 8px;
+  padding-bottom: 7px; border-bottom: 2px solid var(--border); }
+.step-badge { min-width: 32px; height: 32px; border-radius: 50%; background: var(--accent);
+  color: white; font-weight: 700; font-size: 14px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.step-badge.green  { background: var(--green); }
+.step-badge.amber  { background: var(--amber); }
+.step-badge.teal   { background: var(--teal); }
+.step-badge.purple { background: var(--purple); }
+.step-badge.red    { background: var(--red); }
+.step-title { font-size: 19px; font-weight: 700; color: var(--text); }
+.step-sub   { font-size: 12.5px; color: var(--muted); font-family: "SF Mono","Fira Code",monospace; margin-left: auto; }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ════════ NAV ════════ -->
+<nav>
+  <div class="nav-logo">
+    <h2>AirbnbAgenticRAG</h2>
+    <p>Run Guide — top to bottom</p>
+  </div>
+
+  <div class="nav-section">Overview</div>
+  <a href="#overview">Project Overview</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#gcp-services">GCP Services</a>
+
+  <div class="nav-section">Before You Start</div>
+  <a href="#prereqs">Prerequisites</a>
+  <a href="#auth">Authentication</a>
+  <a href="#project-structure">Project Structure</a>
+  <a href="#configuration">Configuration (.env)</a>
+
+  <div class="nav-section">Step by Step</div>
+  <a href="#setup-gcp">Step 1 — GCP Setup</a>
+  <a href="#pipeline">Step 2 — Run Pipeline</a>
+  <a href="#run-local">Step 3 — Run Locally</a>
+  <a href="#deploy">Step 4 — Deploy</a>
+  <a href="#verify">Step 5 — Verify</a>
+  <a href="#eval">Step 6 — Evaluation</a>
+  <a href="#loadtest">Step 7 — Load Testing</a>
+  <a href="#ops">Step 8 — Operations</a>
+
+  <div class="nav-section">Reference</div>
+  <a href="#cache-section">Cache Management</a>
+  <a href="#redis-lifecycle">Redis Cost</a>
+  <a href="#costs">Cost Estimates</a>
+  <a href="#iam-note">IAM Note</a>
+  <a href="#troubleshooting">Troubleshooting</a>
+</nav>
+
+<!-- ════════ MAIN ════════ -->
+<main>
+
+<div class="hero">
+  <h1>AirbnbAgenticRAG</h1>
+  <p>From blank GCP project to running application — follow the steps in order</p>
+  <div class="badges">
+    <span class="badge">Vertex AI VS2.0</span>
+    <span class="badge">Gemini 2.5 Flash</span>
+    <span class="badge">Cloud Memorystore Redis</span>
+    <span class="badge">Cloud Run</span>
+    <span class="badge">FastAPI</span>
+    <span class="badge">Streamlit</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     OVERVIEW
+══════════════════════════════════════════════════════ -->
+<h2 id="overview">Project Overview</h2>
+<p>AirbnbAgenticRAG is a Retrieval-Augmented Generation system for searching 3,000 Austin TX Airbnb listings. It exposes two API endpoints with different retrieval strategies:</p>
+<table>
+  <tr><th>Endpoint</th><th>Strategy</th><th>Best for</th></tr>
+  <tr>
+    <td><code>POST /rag</code></td>
+    <td>Simple RAG — embed → ANN search → Gemini</td>
+    <td>Open-ended, preference-based queries</td>
+  </tr>
+  <tr>
+    <td><code>POST /ask</code></td>
+    <td>Agentic RAG — extract filters → tool call → filtered results → Gemini</td>
+    <td>Structured queries (price, bedrooms, neighbourhood)</td>
+  </tr>
+</table>
+<p>Both endpoints share a <strong>Redis cache</strong> — a cache HIT returns the full response in &lt;2ms, bypassing embeddings, Vector Search, and Gemini entirely.</p>
+
+<!-- ══════════════════════════════════════════════════════
+     ARCHITECTURE
+══════════════════════════════════════════════════════ -->
+<h2 id="architecture">Architecture</h2>
+<div class="arch">
+┌──────────────────────────────────────────────────────────┐
+│                  OFFLINE  (run once)                     │
+│                                                          │
+│  GCS Bucket  →  02_ingest.py  →  VS2.0 Collection        │
+│                 (embed + batch_create_data_objects)       │
+│                                                          │
+│  03_create_index.py  →  ScaNN ANN Index                  │
+└──────────────────────────────────────────────────────────┘
+
+┌──────────────┐   ┌──────────────────────────────────────┐
+│  Streamlit   │   │          ONLINE                      │
+│     UI       │──▶│  FastAPI  /rag  or  /ask             │
+│  (port 8501) │◀──│    │                                 │
+└──────────────┘   │    ├─▶ Redis HIT  ──▶ return         │
+                   │    │                                 │
+                   │    └─▶ MISS: embed (text-emb-005)    │
+                   │              │                       │
+                   │         VS2.0 ScaNN ANN search       │
+                   │              │                       │
+                   │         GetDataObject ×N (parallel)  │
+                   │              │                       │
+                   │    /rag: build context → Gemini      │
+                   │    /ask: filter → ReAct loop         │
+                   │              │                       │
+                   │         Redis SET (SETEX + TTL)      │
+                   └──────────────────────────────────────┘
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     GCP SERVICES
+══════════════════════════════════════════════════════ -->
+<h2 id="gcp-services">GCP Services Used</h2>
+<table>
+  <tr><th>Service</th><th>Role</th><th>Cost</th></tr>
+  <tr><td><span class="gcpbadge">Cloud Storage</span></td><td>Raw CSV staging + eval report storage</td><td>~$0.02/GB/mo</td></tr>
+  <tr><td><span class="gcpbadge">VS2.0 Collection</span></td><td>Stores DataObjects (metadata + 768-dim vectors)</td><td>Pay per vector</td></tr>
+  <tr><td><span class="gcpbadge">VS2.0 ScaNN Index</span></td><td>ANN search — sub-10ms at scale</td><td>Included</td></tr>
+  <tr><td><span class="gcpbadge">Vertex AI Embeddings</span></td><td>text-embedding-005 — 768-dim vectors</td><td>$0.000025/1k chars</td></tr>
+  <tr><td><span class="gcpbadge">Gemini 2.5 Flash</span></td><td>LLM for answer generation + agentic function calling</td><td>Pay per token</td></tr>
+  <tr><td><span class="gcpbadge">Cloud Memorystore</span></td><td>Redis cache — 0.5–2ms latency via VPC connector</td><td>~$40–80/mo (BASIC 1GB)</td></tr>
+  <tr><td><span class="gcpbadge">Cloud Run</span></td><td>Serverless containers — FastAPI + Streamlit</td><td>Free tier: 2M req/mo</td></tr>
+  <tr><td><span class="gcpbadge">Artifact Registry</span></td><td>Docker image storage for Cloud Run</td><td>~$0.10/GB/mo</td></tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════
+     PREREQUISITES
+══════════════════════════════════════════════════════ -->
+<h2 id="prereqs">Prerequisites</h2>
+<p>Install these tools on your local machine before running any scripts.</p>
+<table>
+  <tr><th>Tool</th><th>Version</th><th>Install</th></tr>
+  <tr><td><code>gcloud</code></td><td>≥ 470.0.0</td><td><code>brew install google-cloud-sdk</code></td></tr>
+  <tr><td><code>python</code></td><td>≥ 3.10</td><td>Pre-installed, or use conda / <code>brew install python</code></td></tr>
+  <tr><td><code>pip</code></td><td>latest</td><td><code>pip install -r requirements.txt</code></td></tr>
+  <tr><td><code>locust</code></td><td>≥ 2.28</td><td><code>pip install locust</code> (load testing only)</td></tr>
+</table>
+
+<div class="callout info">
+  <div class="callout-title">ℹ  No local Docker required</div>
+  <code>run/04_deploy.sh</code> uses Cloud Build to build images on GCP. You do not need Docker Desktop installed locally. This also avoids Apple Silicon ARM64/AMD64 issues.
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     AUTHENTICATION
+══════════════════════════════════════════════════════ -->
+<h2 id="auth">Authentication</h2>
+<p>Authenticate once. All scripts and app code use Application Default Credentials (ADC).</p>
+<pre>
+<span class="comment"># Log in with ADC — used by all scripts and the app locally</span>
+gcloud auth application-default login
+
+<span class="comment"># Set your default project</span>
+gcloud config set project YOUR_PROJECT_ID
+
+<span class="comment"># Verify auth is working</span>
+gcloud auth application-default print-access-token | head -c 40
+</pre>
+
+<div class="callout warn">
+  <div class="callout-title">⚠  Redis is not reachable from your local machine</div>
+  Memorystore runs on a private VPC IP (e.g. <code>10.x.x.x</code>). It is only reachable from Cloud Run via the VPC connector. Locally, the app detects an empty <code>REDIS_HOST</code> and disables cache silently — the app works normally, just without caching.
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PROJECT STRUCTURE
+══════════════════════════════════════════════════════ -->
+<h2 id="project-structure">Project Structure</h2>
+<p>Each directory has one job. The <code>run/</code> directory is where you spend most of your time.</p>
+<div class="arch">
+AirbnbAgenticRAG/
+│
+├── config.py                  ← Single source of truth — reads all values from env vars
+├── .env.example               ← Template: copy to .env and fill in your GCP values
+├── .gitignore                 ← Excludes .env, __pycache__, local data, secrets
+│
+├── app/                       ← FastAPI backend (online query layer)
+│   ├── main.py                   /rag and /ask endpoints + cache check/write
+│   ├── rag.py                    VS2.0 retriever + context builder
+│   └── cache.py                  Redis helpers (get_cached, set_cached, keys)
+│
+├── agent/                     ← Agentic RAG logic
+│   ├── agent.py                  ReAct loop — Gemini + tool calling (max 5 turns)
+│   └── tools.py                  find_rentals() — over-fetch + Python-side filter
+│
+├── scripts/                   ← Offline data pipeline (run once)
+│   ├── 00_upload_data.py         Upload local CSV to GCS
+│   ├── 01_setup_collection.py    Create VS2.0 Collection + schema
+│   ├── 02_ingest.py              Embed + ingest 3,000 listings as DataObjects
+│   ├── 03_create_index.py        Build ScaNN ANN index (server-side LRO)
+│   ├── 04_build_pipeline.py      Runs stages 1–3 in sequence (convenience wrapper)
+│   └── inspect_collection.py     Show collection count, index status, sample objects
+│
+├── eval/                      ← Evaluation (RAGAS-style scoring)
+│   ├── dataset.json              25 labeled queries across 5 categories
+│   ├── evaluate.py               Runner: calls API → scores → uploads to GCS
+│   ├── metrics.py                Pure scoring functions (no I/O)
+│   └── report.py                 HTML report builder
+│
+├── load_test/                 ← Locust load testing
+│   ├── locustfile.py             User scenarios (HealthUser, RAGUser, AgentUser)
+│   └── locust.conf               Default settings (users=20, 5 min)
+│
+├── ui/                        ← Streamlit frontend
+├── notebooks/                 ← Jupyter walkthroughs (ingestion, RAG, eval)
+├── docs/                      ← Architecture diagrams (HTML)
+│
+├── run/                       ← Operation scripts — run these in order
+│   ├── 01_setup_gcp.sh           One-time GCP setup
+│   ├── 02_run_pipeline.sh        Data ingestion pipeline
+│   ├── 03_run_local.sh           Start API + UI locally
+│   ├── 04_deploy.sh              Build + deploy to Cloud Run
+│   ├── 05_verify.sh              Health check + endpoint tests
+│   ├── 06_run_eval.sh            RAGAS evaluation
+│   ├── 07_run_loadtest.sh        Locust load tests
+│   └── 08_ops.sh                 Cache, Redis, re-ingestion operations
+│
+├── Dockerfile.api             ← FastAPI container image
+├── Dockerfile.ui              ← Streamlit container image
+├── requirements.txt           ← All dependencies (dev + runtime)
+├── requirements-api.txt       ← API-only dependencies (used in Dockerfile.api)
+└── requirements-ui.txt        ← UI-only dependencies (used in Dockerfile.ui)
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     CONFIGURATION
+══════════════════════════════════════════════════════ -->
+<h2 id="configuration">Configuration — .env Setup</h2>
+<p>All project-specific values live in a <code>.env</code> file. Create it once from the template before running any step.</p>
+
+<pre>
+<span class="comment"># Copy the template</span>
+cp .env.example .env
+
+<span class="comment"># Edit with your values — minimum required fields:</span>
+<span class="val">GCP_PROJECT_ID</span>=your-gcp-project-id
+<span class="val">GCS_BUCKET_NAME</span>=your-gcs-bucket-name
+</pre>
+
+<p>Full list of available settings:</p>
+<table>
+  <tr><th>Variable</th><th>Required</th><th>Description</th></tr>
+  <tr><td><code>GCP_PROJECT_ID</code></td><td>✅ Yes</td><td>Your GCP project ID</td></tr>
+  <tr><td><code>GCS_BUCKET_NAME</code></td><td>✅ Yes</td><td>GCS bucket for data + eval reports</td></tr>
+  <tr><td><code>GCP_REGION</code></td><td>Optional</td><td>Defaults to <code>us-central1</code></td></tr>
+  <tr><td><code>COLLECTION_ID</code></td><td>Optional</td><td>Defaults to <code>airbnb-listings-collection</code></td></tr>
+  <tr><td><code>EMBEDDING_MODEL</code></td><td>Optional</td><td>Defaults to <code>text-embedding-005</code></td></tr>
+  <tr><td><code>GEMINI_MODEL</code></td><td>Optional</td><td>Defaults to <code>gemini-2.5-flash</code></td></tr>
+  <tr><td><code>REDIS_HOST</code></td><td>Optional</td><td>Leave empty locally — cache is auto-disabled</td></tr>
+  <tr><td><code>RAG_API_URL</code></td><td>Optional</td><td>Defaults to <code>http://localhost:8000</code></td></tr>
+</table>
+
+<div class="callout warn">
+  <div class="callout-title">⚠  Never commit .env to git</div>
+  <code>.env</code> is listed in <code>.gitignore</code>. Only commit <code>.env.example</code> (placeholder values, no credentials). <code>config.py</code> reads all sensitive values from environment variables at runtime.
+</div>
+
+<div class="callout tip">
+  <div class="callout-title">💡  One config, multiple environments</div>
+  The same code runs locally (reads from <code>.env</code>), on Cloud Run (reads from service env vars), and in any other environment — without any code changes.
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     STEP 1: GCP SETUP
+══════════════════════════════════════════════════════ -->
+<div class="step-header" id="setup-gcp">
+  <div class="step-badge">1</div>
+  <div class="step-title">GCP Setup</div>
+  <div class="step-sub">run/01_setup_gcp.sh · run once · ~10 min</div>
+</div>
+<p>Provisions all GCP infrastructure needed for the project. This is a one-time step per project — safe to re-run (all resource creation is idempotent).</p>
+<pre>
+./run/01_setup_gcp.sh
+</pre>
+<p>What this script does:</p>
+<ul>
+  <li>Enables all required GCP APIs (including <code>vectorsearch.googleapis.com</code> separately from <code>aiplatform.googleapis.com</code>)</li>
+  <li>Creates Artifact Registry Docker repository for container images</li>
+  <li>Creates service account <code>airbnb-rag-sa</code> with all required IAM roles</li>
+  <li>Creates custom <code>vectorSearchUser</code> IAM role (required — see <a href="#iam-note">IAM Note</a>)</li>
+  <li>Provisions Memorystore Redis instance (BASIC 1GB, Redis 7.x) and waits for READY</li>
+  <li>Creates Serverless VPC Access connector and waits for READY</li>
+</ul>
+
+<div class="callout success">
+  <div class="callout-title">✓  Idempotent — safe to re-run</div>
+  Every resource is guarded by an existence check. Already-existing resources are skipped without error.
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     STEP 2: PIPELINE
+══════════════════════════════════════════════════════ -->
+<div class="step-header" id="pipeline">
+  <div class="step-badge green">2</div>
+  <div class="step-title">Run Data Pipeline</div>
+  <div class="step-sub">run/02_run_pipeline.sh · run once · ~15–45 min</div>
+</div>
+<p>Uploads the dataset to GCS, creates the Vector Search 2.0 collection, embeds and ingests all 3,000 listings, then builds the ScaNN ANN index. The app cannot serve queries until this step completes.</p>
+<pre>
+<span class="comment"># Full pipeline: upload → collection → ingest 3,000 listings → ScaNN index</span>
+./run/02_run_pipeline.sh
+
+<span class="comment"># Quick test — ingest only 100 listings (~3 min, no ScaNN index)</span>
+./run/02_run_pipeline.sh --quick
+
+<span class="comment"># Skip index build — uses exact kNN instead of ANN (fine for dev/testing)</span>
+./run/02_run_pipeline.sh --skip-index
+
+<span class="comment"># Run full pipeline then inspect the collection</span>
+./run/02_run_pipeline.sh --verify
+</pre>
+
+<table>
+  <tr><th>Stage</th><th>Script</th><th>What happens</th><th>Time</th></tr>
+  <tr><td>0</td><td><code>00_upload_data.py</code></td><td>Upload local CSV → GCS (skipped if already there)</td><td>~1 min</td></tr>
+  <tr><td>1</td><td><code>01_setup_collection.py</code></td><td>Create VS2.0 Collection with data schema + 768-dim vector schema</td><td>~10 sec</td></tr>
+  <tr><td>2</td><td><code>02_ingest.py</code></td><td>Download CSV → parse → embed (text-embedding-005) → batch upload DataObjects</td><td>~8–12 min</td></tr>
+  <tr><td>3</td><td><code>03_create_index.py</code></td><td>Build ScaNN ANN index on the embedding field (server-side long-running operation)</td><td>~5–20 min</td></tr>
+</table>
+
+<div class="callout warn">
+  <div class="callout-title">⚠  Embedding rate limits</div>
+  <code>text-embedding-005</code> has a QPM quota. The pipeline uses <code>BATCH_SIZE=50</code> with exponential backoff on 429 errors. If you hit limits, set a lower <code>MAX_LISTINGS</code> value in your <code>.env</code>.
+</div>
+
+<pre>
+<span class="comment"># After the pipeline completes — inspect the collection</span>
+python scripts/inspect_collection.py
+
+<span class="comment"># Start fresh (delete collection and re-run)</span>
+python scripts/00_delete_collections.py
+</pre>
+
+<!-- ══════════════════════════════════════════════════════
+     STEP 3: RUN LOCALLY
+══════════════════════════════════════════════════════ -->
+<div class="step-header" id="run-local">
+  <div class="step-badge teal">3</div>
+  <div class="step-title">Run Locally</div>
+  <div class="step-sub">run/03_run_local.sh · optional development step</div>
+</div>
+<p>Starts the FastAPI backend and Streamlit UI on your local machine for development and testing before deploying to Cloud Run.</p>
+<pre>
+<span class="comment"># Install dependencies first (one time)</span>
+pip install -r requirements.txt
+
+<span class="comment"># Start both API (port 8000) and UI (port 8501)</span>
+./run/03_run_local.sh
+
+<span class="comment"># Start API only</span>
+./run/03_run_local.sh --api
+
+<span class="comment"># Start UI only (API must already be running)</span>
+./run/03_run_local.sh --ui
+</pre>
+
+<table>
+  <tr><th>Service</th><th>URL</th><th>Notes</th></tr>
+  <tr><td>FastAPI backend</td><td><code>http://localhost:8000</code></td><td>Auto-reloads on code changes</td></tr>
+  <tr><td>Swagger docs</td><td><code>http://localhost:8000/docs</code></td><td>Try endpoints interactively</td></tr>
+  <tr><td>Streamlit UI</td><td><code>http://localhost:8501</code></td><td>Reads <code>RAG_API_URL</code> from <code>.env</code></td></tr>
+</table>
+
+<div class="callout info">
+  <div class="callout-title">ℹ  Redis cache is disabled locally — this is expected</div>
+  <code>REDIS_HOST</code> is empty in your local <code>.env</code>, so the app prints <em>"cache disabled"</em> and continues normally. No errors, no crashes — queries hit Vector Search directly every time.
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     STEP 4: DEPLOY
+══════════════════════════════════════════════════════ -->
+<div class="step-header" id="deploy">
+  <div class="step-badge amber">4</div>
+  <div class="step-title">Deploy to Cloud Run</div>
+  <div class="step-sub">run/04_deploy.sh · ~5–10 min</div>
+</div>
+<p>Builds Docker images using Cloud Build (no local Docker required), then deploys both the API and UI as serverless Cloud Run services. All required environment variables including <code>GCP_PROJECT_ID</code> and <code>REDIS_HOST</code> are automatically passed to Cloud Run.</p>
+<pre>
+<span class="comment"># Build and deploy both API + UI</span>
+./run/04_deploy.sh
+
+<span class="comment"># Re-deploy API only after code changes</span>
+./run/04_deploy.sh --api
+
+<span class="comment"># Re-deploy UI only</span>
+./run/04_deploy.sh --ui
+</pre>
+
+<table>
+  <tr><th>Service</th><th>Image</th><th>Memory</th><th>VPC connector</th></tr>
+  <tr><td><code>airbnb-rag-api</code></td><td>Dockerfile.api</td><td>2Gi</td><td>Yes — for Redis access</td></tr>
+  <tr><td><code>airbnb-rag-ui</code></td><td>Dockerfile.ui</td><td>1Gi</td><td>No — calls API over HTTPS</td></tr>
+</table>
+
+<div class="callout warn">
+  <div class="callout-title">⚠  Apple Silicon Mac — use Cloud Build, not local Docker</div>
+  Building locally on Apple Silicon produces ARM64 images that crash on Cloud Run with <code>exec format error</code>. <code>04_deploy.sh</code> always uses Cloud Build which runs on linux/amd64 — no <code>--platform</code> flag needed.
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     STEP 5: VERIFY
+══════════════════════════════════════════════════════ -->
+<div class="step-header" id="verify">
+  <div class="step-badge green">5</div>
+  <div class="step-title">Verify Deployment</div>
+  <div class="step-sub">run/05_verify.sh</div>
+</div>
+<p>Runs a sequence of checks against the deployed Cloud Run API: health check → <code>/rag</code> test → <code>/ask</code> test → cache HIT/MISS timing comparison → cache stats summary.</p>
+<pre>
+./run/05_verify.sh
+</pre>
+
+<div class="callout success">
+  <div class="callout-title">✓  Expected health check output</div>
+<pre style="margin:6px 0 0; background:#1E293B; padding:10px; border-radius:6px; font-size:12px;">
+{
+  "status": "ok",
+  "collection": "projects/YOUR_PROJECT_ID/.../airbnb-listings-collection",
+  "cache": {
+    "status": "connected",
+    "host": "10.x.x.x",
+    "hits": 0,
+    "misses": 0
+  }
+}
+</pre>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     STEP 6: EVALUATION
+══════════════════════════════════════════════════════ -->
+<div class="step-header" id="eval">
+  <div class="step-badge purple">6</div>
+  <div class="step-title">Evaluation</div>
+  <div class="step-sub">run/06_run_eval.sh · ~3–8 min</div>
+</div>
+<p>Runs 25 labeled queries against the deployed Cloud Run API and scores each response using LLM-as-judge. Results are uploaded to GCS as an HTML report and opened locally.</p>
+<pre>
+<span class="comment"># Full evaluation — 25 queries, both endpoints, Gemini-as-judge</span>
+./run/06_run_eval.sh
+
+<span class="comment"># Run /rag endpoint only</span>
+./run/06_run_eval.sh --rag
+
+<span class="comment"># Run /ask endpoint only</span>
+./run/06_run_eval.sh --ask
+
+<span class="comment"># Quick smoke — 5 queries, no LLM judge (fast, no Gemini cost)</span>
+./run/06_run_eval.sh --smoke
+
+<span class="comment"># Download and open the latest saved report</span>
+./run/06_run_eval.sh --view
+</pre>
+
+<table>
+  <tr><th>Metric</th><th>Range</th><th>Description</th></tr>
+  <tr><td><code>answer_relevance</code></td><td>0–4</td><td>Gemini-as-judge rates the answer against the query</td></tr>
+  <tr><td><code>filter_accuracy</code></td><td>0–1</td><td>% of expected filters correctly extracted (<code>/ask</code> only)</td></tr>
+  <tr><td><code>keyword_hit_rate</code></td><td>0–1</td><td>% of expected keywords found in the answer</td></tr>
+  <tr><td><code>has_results</code></td><td>bool</td><td>Did the response return at least one listing?</td></tr>
+  <tr><td><code>latency_ms</code></td><td>float</td><td>Wall-clock time from request to response</td></tr>
+</table>
+
+<div class="callout info">
+  <div class="callout-title">ℹ  Second eval run is much faster</div>
+  The first run populates Redis with all 25 query results. A second run returns near-instant cache HITs. Run <code>./run/08_ops.sh cache-flush</code> before re-evaluating to get fresh responses.
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     STEP 7: LOAD TESTING
+══════════════════════════════════════════════════════ -->
+<div class="step-header" id="loadtest">
+  <div class="step-badge amber">7</div>
+  <div class="step-title">Load Testing</div>
+  <div class="step-sub">run/07_run_loadtest.sh · ~20 min full sequence</div>
+</div>
+<p>Uses Locust to simulate concurrent users and measure throughput, latency percentiles, and error rates across different load levels. Also validates cache speedup by running the same queries twice.</p>
+<pre>
+<span class="comment"># Full sequence: smoke → load → stress</span>
+./run/07_run_loadtest.sh
+
+<span class="comment"># Individual stages</span>
+./run/07_run_loadtest.sh --smoke    <span class="comment"># 5 users, 60s — sanity check</span>
+./run/07_run_loadtest.sh --load     <span class="comment"># 20 users, 5 min — standard load</span>
+./run/07_run_loadtest.sh --stress   <span class="comment"># 50 users, 10 min — finding limits</span>
+
+<span class="comment"># Run same queries twice and compare MISS vs HIT latency</span>
+./run/07_run_loadtest.sh --cache
+
+<span class="comment"># Open interactive Locust web dashboard at http://localhost:8089</span>
+./run/07_run_loadtest.sh --ui
+</pre>
+
+<table>
+  <tr><th>Stage</th><th>/rag p50 latency</th><th>/ask p50 latency</th><th>Error rate</th></tr>
+  <tr><td>Smoke — cold (5 users)</td><td>800–3000 ms</td><td>2000–6000 ms</td><td>&lt; 1%</td></tr>
+  <tr><td>Smoke — cached (5 users)</td><td>20–80 ms</td><td>20–80 ms</td><td>&lt; 1%</td></tr>
+  <tr><td>Load (20 users)</td><td>1000–4000 ms</td><td>3000–8000 ms</td><td>&lt; 2%</td></tr>
+  <tr><td>Stress (50 users)</td><td>2000–8000 ms</td><td>5000–15000 ms</td><td>&lt; 5%</td></tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════
+     STEP 8: OPERATIONS
+══════════════════════════════════════════════════════ -->
+<div class="step-header" id="ops">
+  <div class="step-badge red">8</div>
+  <div class="step-title">Operations</div>
+  <div class="step-sub">run/08_ops.sh · ongoing</div>
+</div>
+<p>Day-to-day maintenance commands for cache management, Redis lifecycle, re-ingestion, and log monitoring.</p>
+<pre>
+./run/08_ops.sh cache-stats    <span class="comment"># view hit/miss counts and total cached keys</span>
+./run/08_ops.sh cache-flush    <span class="comment"># clear all cached results (run after re-ingestion)</span>
+./run/08_ops.sh redis-stop     <span class="comment"># delete Redis + VPC connector (saves ~$46/month)</span>
+./run/08_ops.sh redis-start    <span class="comment"># re-create Redis + VPC connector (~10 min)</span>
+./run/08_ops.sh reindex        <span class="comment"># delete collection + re-run full pipeline</span>
+./run/08_ops.sh logs           <span class="comment"># tail Cloud Run API logs live</span>
+</pre>
+
+<!-- ══════════════════════════════════════════════════════
+     CACHE MANAGEMENT
+══════════════════════════════════════════════════════ -->
+<h2 id="cache-section">Cache Management</h2>
+<p>Both <code>/rag</code> and <code>/ask</code> follow the same cache pattern in <code>app/main.py</code>:</p>
+<ol>
+  <li>Build a deterministic key: <code>rag_key(query, top_k)</code> or <code>ask_key(query)</code></li>
+  <li>Check cache: <code>get_cached(key)</code> → return immediately on HIT (&lt;2ms)</li>
+  <li>On MISS: run full pipeline (embed → VS search → Gemini)</li>
+  <li>Store result: <code>set_cached(key, result, ttl=CACHE_RAG_TTL)</code></li>
+</ol>
+
+<table>
+  <tr><th>Endpoint</th><th>TTL</th><th>Key format</th></tr>
+  <tr><td><code>/rag</code></td><td>1 hour</td><td><code>rag:&lt;sha256(query+top_k)[:32]&gt;</code></td></tr>
+  <tr><td><code>/ask</code></td><td>30 min</td><td><code>ask:&lt;sha256(query)[:32]&gt;</code></td></tr>
+</table>
+
+<div class="callout warn">
+  <div class="callout-title">⚠  Always flush cache after re-ingestion</div>
+  Cached responses reference old listing data. Run <code>./run/08_ops.sh cache-flush</code> immediately after <code>./run/08_ops.sh reindex</code> completes.
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     REDIS COST
+══════════════════════════════════════════════════════ -->
+<h2 id="redis-lifecycle">Redis Cost Management</h2>
+<p>Memorystore Redis costs ~$40–55/month even when idle. When pausing the project, stop it to avoid charges — the app continues to work without cache (queries just take longer).</p>
+<pre>
+<span class="comment"># Stop Redis — saves ~$46/month, app continues without cache</span>
+./run/08_ops.sh redis-stop
+
+<span class="comment"># Re-enable Redis when needed (~10 min to provision)</span>
+./run/08_ops.sh redis-start
+</pre>
+
+<div class="callout success">
+  <div class="callout-title">✓  Monthly cost with Redis stopped</div>
+  Cloud Run: <strong>$0</strong> (scales to zero) · VS2.0 (3k vectors): <strong>~$2–5</strong> · GCS: <strong>&lt;$0.01</strong> · Total: <strong>~$2–5/month</strong>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     COST ESTIMATES
+══════════════════════════════════════════════════════ -->
+<h2 id="costs">Cost Estimates</h2>
+<table>
+  <tr><th>Scenario</th><th>Monthly cost</th></tr>
+  <tr><td>Idle (no traffic) — Redis running</td><td>~$45–60</td></tr>
+  <tr><td>Idle (no traffic) — Redis stopped</td><td>~$2–5</td></tr>
+  <tr><td>Active development (moderate traffic)</td><td>~$60–100</td></tr>
+  <tr><td>Production with real users</td><td>~$100–200+</td></tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════
+     IAM NOTE
+══════════════════════════════════════════════════════ -->
+<h2 id="iam-note">IAM Note — Vector Search 2.0</h2>
+<div class="callout warn">
+  <div class="callout-title">⚠  roles/aiplatform.user grants ZERO vectorsearch.* permissions</div>
+  <p><code>vectorsearch.googleapis.com</code> is a separate API namespace from <code>aiplatform.googleapis.com</code>. The predefined <code>roles/aiplatform.user</code> has no <code>vectorsearch.*</code> permissions. Without the custom role you will get:</p>
+  <code>403 Permission 'vectorsearch.dataObjects.search' denied</code>
+  <p style="margin-top:8px">The <code>01_setup_gcp.sh</code> script creates the custom <code>vectorSearchUser</code> project role and grants it to the service account automatically.</p>
+</div>
+
+<table>
+  <tr><th>Role</th><th>Why needed</th></tr>
+  <tr><td><code>roles/aiplatform.user</code></td><td>Embeddings (text-embedding-005), Gemini LLM calls</td></tr>
+  <tr><td><code>projects/…/roles/vectorSearchUser</code></td><td>VS2.0 search, get &amp; create DataObjects — custom role, no predefined equivalent</td></tr>
+  <tr><td><code>roles/storage.objectViewer</code></td><td>Read CSV from GCS during ingestion</td></tr>
+  <tr><td><code>roles/storage.objectCreator</code></td><td>Write eval reports to GCS</td></tr>
+  <tr><td><code>roles/artifactregistry.reader</code></td><td>Cloud Run pulls Docker images from Artifact Registry</td></tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════
+     TROUBLESHOOTING
+══════════════════════════════════════════════════════ -->
+<h2 id="troubleshooting">Troubleshooting</h2>
+<table>
+  <tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr>
+  <tr>
+    <td><code>403 vectorsearch.dataObjects.search denied</code></td>
+    <td>Custom IAM role missing</td>
+    <td>Re-run <code>./run/01_setup_gcp.sh</code></td>
+  </tr>
+  <tr>
+    <td>Cloud Run 500 on all endpoints</td>
+    <td><code>GCP_PROJECT_ID</code> not set in Cloud Run env vars</td>
+    <td>Re-run <code>./run/04_deploy.sh --api</code> — it sets all env vars automatically</td>
+  </tr>
+  <tr>
+    <td>Cloud Run container crashes with <code>exec format error</code></td>
+    <td>ARM64 image built locally on Apple Silicon</td>
+    <td>Use <code>./run/04_deploy.sh</code> — it uses Cloud Build (always AMD64)</td>
+  </tr>
+  <tr>
+    <td>Cache shows <code>"status": "unavailable"</code></td>
+    <td>REDIS_HOST not set or VPC connector not attached</td>
+    <td>Re-run <code>./run/04_deploy.sh --api</code> — auto-reads Redis IP and passes it to Cloud Run</td>
+  </tr>
+  <tr>
+    <td>Redis unreachable from local machine</td>
+    <td>Memorystore uses private VPC IP only</td>
+    <td>Expected — cache is disabled locally. Use Cloud Shell for direct Redis CLI access.</td>
+  </tr>
+  <tr>
+    <td><code>/ask</code> returns 500 with "finish reason: 2"</td>
+    <td>Old vertexai SDK incorrectly flags function-call responses as safety blocks</td>
+    <td>Ensure <code>agent.py</code> uses <code>model.start_chat(response_validation=False)</code></td>
+  </tr>
+  <tr>
+    <td>Eval returns <code>results=0</code> for all queries</td>
+    <td>Running against wrong server or collection not yet ingested</td>
+    <td>Health check must show <code>collection</code> + <code>cache</code> keys. Run Step 2 pipeline first.</td>
+  </tr>
+  <tr>
+    <td>429 errors during ingestion or eval</td>
+    <td>Gemini or embedding API rate limit</td>
+    <td>Reduce <code>MAX_LISTINGS</code> in <code>.env</code> or increase quota in Cloud Console</td>
+  </tr>
+</table>
+
+</main>
+</div>
+
+<script>
+// Highlight active nav link on scroll
+const sections = document.querySelectorAll('[id]');
+const navLinks  = document.querySelectorAll('nav a');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => { if (window.scrollY >= s.offsetTop - 80) current = s.id; });
+  navLinks.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Airbnb Agentic RAG — Full Architecture</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #f0f0f0;
+    padding: 40px 20px 80px;
+    background-image: radial-gradient(circle, #c8c8c8 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 22px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 4px;
+    letter-spacing: -0.3px;
+  }
+  .subtitle {
+    text-align: center;
+    font-size: 12px;
+    color: #777;
+    margin-bottom: 40px;
+    letter-spacing: 0.2px;
+  }
+
+  /* ── Canvas ── */
+  .canvas {
+    max-width: 1320px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* ── Section container ── */
+  .section {
+    background: rgba(255,255,255,0.72);
+    border: 1.5px solid #d8d8d8;
+    border-radius: 16px;
+    padding: 20px 28px 24px;
+    backdrop-filter: blur(4px);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .section-tag {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+  .tag-orange { background: #fff3cd; color: #92400e; border: 1px solid #fcd34d; }
+  .tag-blue   { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+  .tag-purple { background: #ede9fe; color: #5b21b6; border: 1px solid #c4b5fd; }
+  .tag-green  { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+  .tag-red    { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+  .section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1a1a;
+  }
+
+  /* ── Flow row ── */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+  }
+
+  /* ── Node shapes ── */
+  .node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 5px;
+    min-width: 110px;
+  }
+
+  .box {
+    padding: 10px 16px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.35;
+    white-space: nowrap;
+  }
+  .box-sub {
+    font-size: 9.5px;
+    font-weight: 400;
+    opacity: 0.75;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    margin-top: 1px;
+  }
+
+  .n-yellow  { background: #fef9c3; border: 2px solid #d97706; color: #1a1a1a; }
+  .n-green   { background: #d1fae5; border: 2px solid #059669; color: #064e3b; border-radius: 40px !important; }
+  .n-blue    { background: #dbeafe; border: 2px solid #2563eb; color: #1e3a8a; }
+  .n-purple  { background: #ede9fe; border: 2px solid #7c3aed; color: #3b0764; }
+  .n-red     { background: #fee2e2; border: 2px solid #dc2626; color: #7f1d1d; }
+  .n-cyan    { background: #cffafe; border: 2px solid #0891b2; color: #164e63; }
+  .n-gray    { background: #f1f5f9; border: 2px solid #94a3b8; color: #334155; }
+  .n-orange  { background: #ffedd5; border: 2px solid #ea580c; color: #7c2d12; }
+
+  /* ── Arrow ── */
+  .arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 6px;
+    flex-shrink: 0;
+  }
+  .arrow-line-h {
+    height: 2px;
+    width: 36px;
+    background: #9ca3af;
+    position: relative;
+  }
+  .arrow-line-h::after {
+    content: '';
+    position: absolute;
+    right: -7px;
+    top: -4px;
+    border-left: 8px solid #9ca3af;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+  }
+  .arrow-label {
+    font-size: 9px;
+    color: #9ca3af;
+    margin-top: 3px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    white-space: nowrap;
+  }
+
+  /* ── Two-column layout ── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  /* ── Agentic RAG section ── */
+  .agentic-grid {
+    display: grid;
+    grid-template-columns: auto auto auto auto auto;
+    align-items: center;
+    gap: 0;
+  }
+
+  .tools-col {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 0 4px;
+  }
+
+  .react-badge {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #7c3aed;
+    background: #ede9fe;
+    border: 1px solid #c4b5fd;
+    border-radius: 10px;
+    padding: 2px 8px;
+    align-self: center;
+    white-space: nowrap;
+  }
+
+  .memory-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .mem-label {
+    font-size: 9.5px;
+    color: #6b7280;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .mem-item {
+    font-size: 10px;
+    background: #f5f3ff;
+    border: 1px solid #ddd6fe;
+    border-radius: 6px;
+    padding: 4px 10px;
+    color: #4c1d95;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+
+  /* ── Eval & Load Test ── */
+  .metric-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .metric-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: #374151;
+  }
+  .metric-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-green  { background: #22c55e; }
+  .dot-blue   { background: #3b82f6; }
+  .dot-purple { background: #8b5cf6; }
+  .dot-amber  { background: #f59e0b; }
+  .dot-red    { background: #ef4444; }
+  .dot-cyan   { background: #06b6d4; }
+
+  .metric-score {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    color: #6b7280;
+  }
+
+  /* ── Vertical arrow ── */
+  .v-arrow {
+    display: flex;
+    justify-content: center;
+    margin: 4px 0;
+  }
+  .v-arrow-line {
+    width: 2px;
+    height: 20px;
+    background: #9ca3af;
+    position: relative;
+  }
+  .v-arrow-line::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: -4px;
+    border-top: 7px solid #9ca3af;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+  }
+
+  /* ── Bidirectional arrow ── */
+  .bidir::before {
+    content: '';
+    position: absolute;
+    left: -7px;
+    top: -4px;
+    border-right: 8px solid #9ca3af;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+  }
+
+  /* ── Dashed border ── */
+  .dashed { border-style: dashed !important; }
+
+  /* ── Cache bubble ── */
+  .cache-bubble {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #cffafe;
+    border: 1.5px dashed #0891b2;
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #164e63;
+    margin-top: 10px;
+    align-self: flex-start;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #e5e7eb;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: #6b7280;
+  }
+  .legend-swatch {
+    width: 14px;
+    height: 10px;
+    border-radius: 3px;
+    border: 1.5px solid;
+  }
+</style>
+</head>
+<body>
+
+<h1>Airbnb Agentic RAG — Full System Architecture</h1>
+<p class="subtitle">Ingestion · RAG Query · Agentic Loop · Memory · Evaluation · Load Test &nbsp;·&nbsp; GCP + Vertex AI + Gemini 2.5 Flash</p>
+
+<div class="canvas">
+
+  <!-- ═══════════════════════════════════════════════════════
+       SECTION 1 — DATA INGESTION PIPELINE
+       ═══════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-tag tag-orange">① Offline</span>
+      <span class="section-title">Data Ingestion Pipeline</span>
+    </div>
+
+    <div class="flow">
+
+      <div class="node">
+        <div class="box n-green">📁 Data Source</div>
+        <div class="box-sub">listings.csv.gz<br>~10k Airbnb rows</div>
+      </div>
+
+      <div class="arrow">
+        <div class="arrow-line-h"></div>
+        <div class="arrow-label">upload</div>
+      </div>
+
+      <div class="node">
+        <div class="box n-yellow">☁️ GCS Bucket</div>
+        <div class="box-sub">gs://your-gcs-bucket<br>/data/listings.csv.gz</div>
+      </div>
+
+      <div class="arrow">
+        <div class="arrow-line-h"></div>
+        <div class="arrow-label">schema</div>
+      </div>
+
+      <div class="node">
+        <div class="box n-yellow">🗄️ VS 2.0 Collection</div>
+        <div class="box-sub">16 metadata fields<br>768-dim vector slot</div>
+      </div>
+
+      <div class="arrow">
+        <div class="arrow-line-h"></div>
+        <div class="arrow-label">batch 50</div>
+      </div>
+
+      <div class="node">
+        <div class="box n-yellow">⚙️ Embed &amp; Ingest</div>
+        <div class="box-sub">text-embedding-005<br>3,000 DataObjects</div>
+      </div>
+
+      <div class="arrow">
+        <div class="arrow-line-h"></div>
+        <div class="arrow-label">prepare</div>
+      </div>
+
+      <div class="node">
+        <div class="box n-yellow">⚡ ScaNN Index</div>
+        <div class="box-sub">DOT_PRODUCT · ANN<br>~99% recall · &lt;10ms</div>
+      </div>
+
+      <div class="arrow">
+        <div class="arrow-line-h"></div>
+        <div class="arrow-label">ready</div>
+      </div>
+
+      <div class="node">
+        <div class="box n-blue">🔍 Vector Search 2.0</div>
+        <div class="box-sub">Serving endpoint<br>online + ANN</div>
+      </div>
+
+    </div>
+
+    <div class="legend" style="margin-top:16px">
+      <div class="legend-item"><div class="legend-swatch" style="background:#d1fae5;border-color:#059669"></div> External input</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#fef9c3;border-color:#d97706"></div> Processing / GCP service</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#dbeafe;border-color:#2563eb"></div> Serving / output</div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════
+       SECTION 2 — RAG QUERY FLOW
+       ═══════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-tag tag-blue">② Online · /rag</span>
+      <span class="section-title">RAG Query Flow — Redis Cache Decision (Standard)</span>
+    </div>
+
+    <!-- ── Explainer note ── -->
+    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:10px 14px;margin-bottom:18px;font-size:11px;color:#0c4a6e;line-height:1.6">
+      <strong>How Redis is actually used (from <code>app/main.py</code> + <code>app/rag.py</code>):</strong>
+      Cache key = <code>rag:&lt;sha256(query + top_k)&gt;</code>.
+      On a <strong>cache HIT</strong>: the full pre-built answer is returned immediately — no embedding, no Vector Search, no LLM call.
+      On a <strong>cache MISS</strong>: the full pipeline runs and the final answer is stored for 1 hour (3 600 s TTL).
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px">
+
+      <!-- ── PATH A: CACHE HIT (fast path) ── -->
+      <div style="background:#ecfdf5;border:1.5px solid #6ee7b7;border-radius:10px;padding:12px 16px">
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#065f46;margin-bottom:10px">
+          ⚡ PATH A — Cache HIT &nbsp;·&nbsp; ~0.5–2 ms
+        </div>
+        <div class="flow" style="align-items:center">
+
+          <div class="node">
+            <div class="box n-green" style="font-size:11px">👤 User Query</div>
+            <div class="box-sub">"2BR &lt; $150 Miami"</div>
+          </div>
+
+          <div class="arrow">
+            <div class="arrow-line-h"></div>
+            <div class="arrow-label">SHA-256 key</div>
+          </div>
+
+          <div class="node">
+            <div class="box n-cyan" style="font-size:11px">⚡ Redis Lookup</div>
+            <div class="box-sub">Cloud Memorystore<br><code>GET rag:&lt;hash&gt;</code></div>
+          </div>
+
+          <div class="arrow">
+            <div class="arrow-line-h" style="background:#22c55e"></div>
+            <div class="arrow-label" style="color:#16a34a;font-weight:700">HIT ✓</div>
+          </div>
+
+          <div class="node">
+            <div class="box n-cyan" style="font-size:11px">📦 Cached Answer</div>
+            <div class="box-sub">Full RagResponse JSON<br>answer + sources</div>
+          </div>
+
+          <div class="arrow">
+            <div class="arrow-line-h"></div>
+            <div class="arrow-label">return</div>
+          </div>
+
+          <div class="node">
+            <div class="box n-blue" style="font-size:11px">💬 Response</div>
+            <div class="box-sub">Instant · 0.5–2ms<br>No LLM cost</div>
+          </div>
+
+          <!-- Skipped steps annotation -->
+          <div style="margin-left:12px;display:flex;flex-direction:column;gap:4px">
+            <div style="font-size:9px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Skipped entirely:</div>
+            <div style="font-size:10px;color:#9ca3af;text-decoration:line-through">🔢 Embed Query</div>
+            <div style="font-size:10px;color:#9ca3af;text-decoration:line-through">🔍 Vector Search (ScaNN)</div>
+            <div style="font-size:10px;color:#9ca3af;text-decoration:line-through">📋 Metadata Fetch</div>
+            <div style="font-size:10px;color:#9ca3af;text-decoration:line-through">🤖 Gemini LLM call</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── PATH B: CACHE MISS (full pipeline) ── -->
+      <div style="background:#fff7ed;border:1.5px solid #fcd34d;border-radius:10px;padding:12px 16px">
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#92400e;margin-bottom:10px">
+          🔄 PATH B — Cache MISS &nbsp;·&nbsp; ~300–1 500 ms &nbsp;(first-time query)
+        </div>
+        <div class="flow" style="align-items:flex-start">
+
+          <div class="node">
+            <div class="box n-green" style="font-size:11px">👤 User Query</div>
+            <div class="box-sub">"2BR &lt; $150 Miami"</div>
+          </div>
+
+          <div class="arrow">
+            <div class="arrow-line-h"></div>
+            <div class="arrow-label">SHA-256 key</div>
+          </div>
+
+          <div class="node">
+            <div class="box n-cyan" style="font-size:11px">⚡ Redis Lookup</div>
+            <div class="box-sub">Cloud Memorystore<br><code>GET rag:&lt;hash&gt;</code></div>
+          </div>
+
+          <div class="arrow">
+            <div class="arrow-line-h" style="background:#ef4444"></div>
+            <div class="arrow-label" style="color:#dc2626;font-weight:700">MISS ✗</div>
+          </div>
+
+          <div class="node">
+            <div class="box n-yellow" style="font-size:11px">🔢 Embed Query</div>
+            <div class="box-sub">text-embedding-005<br>768-dim vector</div>
+          </div>
+
+          <div class="arrow">
+            <div class="arrow-line-h"></div>
+            <div class="arrow-label">vector</div>
+          </div>
+
+          <div class="node">
+            <div class="box n-yellow" style="font-size:11px">🔍 Vector Search</div>
+            <div class="box-sub">ScaNN ANN index<br>top-k=5 · &lt;10ms</div>
+          </div>
+
+          <div class="arrow">
+            <div class="arrow-line-h"></div>
+            <div class="arrow-label">IDs</div>
+          </div>
+
+          <div class="node">
+            <div class="box n-yellow" style="font-size:11px">📋 Fetch Chunks</div>
+            <div class="box-sub">DataObjectService<br>metadata + text</div>
+          </div>
+
+          <div class="arrow">
+            <div class="arrow-line-h"></div>
+            <div class="arrow-label">context</div>
+          </div>
+
+          <div class="node">
+            <div class="box n-purple" style="font-size:11px">🤖 Gemini</div>
+            <div class="box-sub">grounded generation<br>structured prompt</div>
+          </div>
+
+          <div class="arrow">
+            <div class="arrow-line-h"></div>
+            <div class="arrow-label">answer</div>
+          </div>
+
+          <!-- Final answer node with cache write annotation -->
+          <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+            <div class="node">
+              <div class="box n-blue" style="font-size:11px">💬 RAG Answer</div>
+              <div class="box-sub">JSON + markdown<br>300–1500ms</div>
+            </div>
+            <!-- downward arrow to cache write -->
+            <div style="font-size:9px;color:#0891b2;font-weight:600">↓ write to cache</div>
+            <div class="node">
+              <div class="box n-cyan" style="font-size:11px;padding:5px 10px">💾 Redis SET</div>
+              <div class="box-sub"><code>SETEX rag:&lt;hash&gt; 3600</code><br>TTL = 1 hr · next hit = PATH A</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Cache stats row ── -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:8px 14px;font-size:10.5px;color:#0c4a6e">
+          <strong>Cache Key</strong> &nbsp;·&nbsp; <code>rag:&lt;sha256(query.lower().strip() | top_k)[:32]&gt;</code>
+        </div>
+        <div style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:8px;padding:8px 14px;font-size:10.5px;color:#065f46">
+          <strong>HIT latency</strong> &nbsp;·&nbsp; 0.5–2 ms
+        </div>
+        <div style="background:#fff7ed;border:1px solid #fcd34d;border-radius:8px;padding:8px 14px;font-size:10.5px;color:#92400e">
+          <strong>MISS latency</strong> &nbsp;·&nbsp; 300–1 500 ms
+        </div>
+        <div style="background:#f5f3ff;border:1px solid #c4b5fd;border-radius:8px;padding:8px 14px;font-size:10.5px;color:#4c1d95">
+          <strong>TTL</strong> &nbsp;·&nbsp; 3 600 s (1 hr) &nbsp;·&nbsp; <code>CACHE_RAG_TTL</code> in config.py
+        </div>
+        <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:8px 14px;font-size:10.5px;color:#7f1d1d">
+          <strong>What's stored</strong> &nbsp;·&nbsp; Full <code>RagResponse</code> dict (answer + sources list)
+        </div>
+      </div>
+
+    </div><!-- /flex column -->
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════
+       SECTION 3 — AGENTIC RAG
+       ═══════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-tag tag-purple">③ Agentic · /ask</span>
+      <span class="section-title">Agentic RAG — Redis Cache Decision + ReAct Loop</span>
+    </div>
+
+    <!-- Explainer -->
+    <div style="background:#faf5ff;border:1px solid #c4b5fd;border-radius:8px;padding:10px 14px;margin-bottom:18px;font-size:11px;color:#3b0764;line-height:1.6">
+      <strong>How Redis is used in <code>app/main.py → ask()</code>:</strong>
+      Cache key = <code>ask:&lt;sha256(query)&gt;</code>.
+      On a <strong>cache HIT</strong> the full <code>AgentResponse</code> is returned instantly —
+      <strong>the ReAct loop, every tool call, and every Gemini call are completely skipped.</strong>
+      On a <strong>cache MISS</strong> the full agentic pipeline runs and the result is stored for 30 min (<code>CACHE_ASK_TTL = 1800s</code>).
+      <br><em>Additionally</em>, each individual <code>find_rentals()</code> tool call has its own inner cache keyed on
+      <code>ask:&lt;sha256(query + all_filters)&gt;</code> — a tool-level HIT skips embedding + Vector Search for that call.
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px">
+
+      <!-- ── PATH A: CACHE HIT ── -->
+      <div style="background:#faf5ff;border:1.5px solid #a78bfa;border-radius:10px;padding:12px 16px">
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#5b21b6;margin-bottom:10px">
+          ⚡ PATH A — Cache HIT &nbsp;·&nbsp; ~0.5–2 ms &nbsp;·&nbsp; endpoint-level cache (<code>app/main.py</code>)
+        </div>
+        <div class="flow" style="align-items:center">
+
+          <div class="node">
+            <div class="box n-green" style="font-size:11px">👤 User Query</div>
+            <div class="box-sub">"find 2BR under $150<br>near downtown"</div>
+          </div>
+
+          <div class="arrow">
+            <div class="arrow-line-h"></div>
+            <div class="arrow-label">SHA-256 key</div>
+          </div>
+
+          <div class="node">
+            <div class="box n-cyan" style="font-size:11px">⚡ Redis Lookup</div>
+            <div class="box-sub">Cloud Memorystore<br><code>GET ask:&lt;hash&gt;</code></div>
+          </div>
+
+          <div class="arrow">
+            <div class="arrow-line-h" style="background:#22c55e"></div>
+            <div class="arrow-label" style="color:#16a34a;font-weight:700">HIT ✓</div>
+          </div>
+
+          <div class="node">
+            <div class="box n-cyan" style="font-size:11px">📦 Cached Response</div>
+            <div class="box-sub">Full AgentResponse JSON<br>answer + tool_calls log</div>
+          </div>
+
+          <div class="arrow">
+            <div class="arrow-line-h"></div>
+            <div class="arrow-label">return</div>
+          </div>
+
+          <div class="node">
+            <div class="box n-blue" style="font-size:11px">✅ Response</div>
+            <div class="box-sub">Instant · 0.5–2ms<br>No agent, no LLM cost</div>
+          </div>
+
+          <!-- Skipped steps -->
+          <div style="margin-left:14px;display:flex;flex-direction:column;gap:4px">
+            <div style="font-size:9px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Skipped entirely:</div>
+            <div style="font-size:10px;color:#9ca3af;text-decoration:line-through">🧠 Agent Orchestrator</div>
+            <div style="font-size:10px;color:#9ca3af;text-decoration:line-through">🔁 ReAct Loop (all turns)</div>
+            <div style="font-size:10px;color:#9ca3af;text-decoration:line-through">🛠️ find_rentals() tool calls</div>
+            <div style="font-size:10px;color:#9ca3af;text-decoration:line-through">🔢 Embed + Vector Search</div>
+            <div style="font-size:10px;color:#9ca3af;text-decoration:line-through">🤖 Gemini 2.5 Flash (all turns)</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── PATH B: CACHE MISS — full agentic pipeline ── -->
+      <div style="background:#fdf4ff;border:1.5px solid #d8b4fe;border-radius:10px;padding:12px 16px">
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#7c3aed;margin-bottom:12px">
+          🔄 PATH B — Cache MISS &nbsp;·&nbsp; ~1 000–5 000 ms &nbsp;(first-time query — full ReAct loop)
+        </div>
+
+        <!-- Row 1: entry → cache miss → orchestrator -->
+        <div class="flow" style="align-items:center;margin-bottom:12px">
+
+          <div class="node">
+            <div class="box n-green" style="font-size:11px">👤 User Query</div>
+            <div class="box-sub">"find 2BR under $150<br>near downtown"</div>
+          </div>
+
+          <div class="arrow">
+            <div class="arrow-line-h"></div>
+            <div class="arrow-label">SHA-256 key</div>
+          </div>
+
+          <div class="node">
+            <div class="box n-cyan" style="font-size:11px">⚡ Redis Lookup</div>
+            <div class="box-sub">Cloud Memorystore<br><code>GET ask:&lt;hash&gt;</code></div>
+          </div>
+
+          <div class="arrow">
+            <div class="arrow-line-h" style="background:#ef4444"></div>
+            <div class="arrow-label" style="color:#dc2626;font-weight:700">MISS ✗</div>
+          </div>
+
+          <div class="node">
+            <div class="box n-purple" style="font-size:11px;min-width:140px">🧠 Agent Orchestrator</div>
+            <div class="box-sub">ReAct · plan → act → observe<br><code>agent/agent.py run_agent()</code></div>
+          </div>
+
+          <div class="arrow">
+            <div class="arrow-line-h" style="width:24px"></div>
+            <div class="arrow-label">Turn 1</div>
+          </div>
+
+          <div class="node">
+            <div class="box n-purple" style="font-size:11px">🤖 Gemini</div>
+            <div class="box-sub">decides which<br>tool to call</div>
+          </div>
+
+          <div class="arrow">
+            <div class="arrow-line-h" style="width:24px"></div>
+            <div class="arrow-label">function_call</div>
+          </div>
+
+          <!-- find_rentals with its own inner cache -->
+          <div style="display:flex;flex-direction:column;gap:6px;background:#fffbeb;border:1.5px solid #fcd34d;border-radius:8px;padding:8px 12px">
+            <div style="font-size:9.5px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:0.5px">🛠️ find_rentals() tool</div>
+            <div style="font-size:9px;color:#78716c;margin-bottom:2px"><code>agent/tools.py</code></div>
+
+            <!-- Inner cache check -->
+            <div style="display:flex;align-items:center;gap:6px;background:#ecfeff;border:1px solid #67e8f9;border-radius:6px;padding:5px 8px">
+              <span style="font-size:10px;font-weight:600;color:#0e7490">⚡ Inner Redis Check</span>
+              <span style="font-size:9px;color:#0891b2"><code>ask:&lt;sha256(query+filters)&gt;</code></span>
+            </div>
+            <div style="display:flex;gap:8px;font-size:9.5px">
+              <span style="color:#16a34a;font-weight:600">HIT → return cached listings</span>
+              <span style="color:#6b7280">|</span>
+              <span style="color:#dc2626;font-weight:600">MISS → continue ↓</span>
+            </div>
+
+            <!-- Miss path inside tool -->
+            <div style="display:flex;flex-direction:column;gap:4px;padding-left:4px;border-left:2px solid #fcd34d">
+              <div class="box n-yellow" style="font-size:10px;padding:4px 10px">🔢 Embed query (text-embedding-005)</div>
+              <div class="box n-yellow" style="font-size:10px;padding:4px 10px">🔍 VS2.0 ScaNN Search (over-fetch ×4)</div>
+              <div class="box n-yellow" style="font-size:10px;padding:4px 10px">📋 Fetch metadata + apply filters</div>
+              <div class="box n-cyan" style="font-size:10px;padding:4px 10px">💾 Cache tool result (TTL 1800s)</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Row 2: tool result → Gemini → loop or finish → cache write → response -->
+        <div class="flow" style="align-items:center;padding-left:16px">
+
+          <div class="node">
+            <div class="box n-yellow" style="font-size:11px">📋 Tool Result</div>
+            <div class="box-sub">formatted listings<br>string → Gemini</div>
+          </div>
+
+          <div class="arrow">
+            <div class="arrow-line-h" style="width:24px"></div>
+            <div class="arrow-label">Turn 2</div>
+          </div>
+
+          <div class="node">
+            <div class="box n-purple" style="font-size:11px">🤖 Gemini</div>
+            <div class="box-sub">reasoning over<br>tool results</div>
+          </div>
+
+          <div class="arrow">
+            <div class="arrow-line-h" style="width:24px"></div>
+            <div class="arrow-label" style="color:#7c3aed">loop / finish</div>
+          </div>
+
+          <div style="background:#ede9fe;border:1px dashed #a78bfa;border-radius:8px;padding:6px 12px;font-size:10px;color:#5b21b6;text-align:center">
+            🔁 ReAct loop repeats<br>up to 5 turns<br><span style="font-size:9px;color:#7c3aed">until no more tool calls</span>
+          </div>
+
+          <div class="arrow">
+            <div class="arrow-line-h" style="width:24px"></div>
+            <div class="arrow-label">final text</div>
+          </div>
+
+          <div class="node">
+            <div class="box n-purple" style="font-size:11px">🤖 Gemini</div>
+            <div class="box-sub">final answer<br>no function_call</div>
+          </div>
+
+          <div class="arrow">
+            <div class="arrow-line-h" style="width:24px"></div>
+            <div class="arrow-label">write</div>
+          </div>
+
+          <div class="node">
+            <div class="box n-cyan" style="font-size:11px">💾 Redis SET</div>
+            <div class="box-sub"><code>SETEX ask:&lt;hash&gt; 1800</code><br>next call = PATH A</div>
+          </div>
+
+          <div class="arrow">
+            <div class="arrow-line-h" style="width:24px"></div>
+            <div class="arrow-label">return</div>
+          </div>
+
+          <div class="node">
+            <div class="box n-blue" style="font-size:11px">✅ AgentResponse</div>
+            <div class="box-sub">answer + tool_calls<br>~1–5s total</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Cache key / stats strip ── -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div style="background:#f5f3ff;border:1px solid #c4b5fd;border-radius:8px;padding:8px 14px;font-size:10.5px;color:#3b0764">
+          <strong>Endpoint key</strong> &nbsp;·&nbsp; <code>ask:&lt;sha256(query.lower())[:32]&gt;</code> &nbsp;·&nbsp; caches full <code>AgentResponse</code>
+        </div>
+        <div style="background:#ecfeff;border:1px solid #67e8f9;border-radius:8px;padding:8px 14px;font-size:10.5px;color:#164e63">
+          <strong>Tool-level key</strong> &nbsp;·&nbsp; <code>ask:&lt;sha256(query + all_filters)[:32]&gt;</code> &nbsp;·&nbsp; caches <code>find_rentals()</code> result string
+        </div>
+        <div style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:8px;padding:8px 14px;font-size:10.5px;color:#065f46">
+          <strong>HIT latency</strong> &nbsp;·&nbsp; 0.5–2 ms
+        </div>
+        <div style="background:#fff7ed;border:1px solid #fcd34d;border-radius:8px;padding:8px 14px;font-size:10.5px;color:#92400e">
+          <strong>MISS latency</strong> &nbsp;·&nbsp; 1 000–5 000 ms
+        </div>
+        <div style="background:#faf5ff;border:1px solid #c4b5fd;border-radius:8px;padding:8px 14px;font-size:10.5px;color:#4c1d95">
+          <strong>TTL</strong> &nbsp;·&nbsp; 1 800 s (30 min) &nbsp;·&nbsp; <code>CACHE_ASK_TTL</code> in config.py
+        </div>
+      </div>
+
+    </div><!-- /flex column -->
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════
+       SECTION 4 — EVALUATION  +  LOAD TEST
+       ═══════════════════════════════════════════════════════ -->
+  <div class="two-col">
+
+    <!-- EVALUATION -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-tag tag-green">④ Quality</span>
+        <span class="section-title">RAG Evaluation — RAGAS Suite</span>
+      </div>
+
+      <div style="display:flex;gap:20px;flex-wrap:wrap">
+
+        <!-- Input -->
+        <div>
+          <div style="font-size:9.5px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Inputs</div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div class="box n-green" style="font-size:10px;padding:5px 10px">❓ Question</div>
+            <div class="box n-yellow" style="font-size:10px;padding:5px 10px">📄 Retrieved Context</div>
+            <div class="box n-blue" style="font-size:10px;padding:5px 10px">💬 Generated Answer</div>
+            <div class="box n-gray" style="font-size:10px;padding:5px 10px">✔️ Ground Truth</div>
+          </div>
+        </div>
+
+        <!-- Metrics -->
+        <div style="flex:1">
+          <div style="font-size:9.5px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">RAGAS Metrics</div>
+          <div class="metric-list">
+            <div class="metric-item">
+              <div class="metric-dot dot-green"></div>
+              Faithfulness
+              <span class="metric-score">target ≥ 0.85</span>
+            </div>
+            <div class="metric-item">
+              <div class="metric-dot dot-blue"></div>
+              Answer Relevance
+              <span class="metric-score">target ≥ 0.80</span>
+            </div>
+            <div class="metric-item">
+              <div class="metric-dot dot-purple"></div>
+              Context Recall
+              <span class="metric-score">target ≥ 0.75</span>
+            </div>
+            <div class="metric-item">
+              <div class="metric-dot dot-amber"></div>
+              Context Precision
+              <span class="metric-score">target ≥ 0.80</span>
+            </div>
+            <div class="metric-item">
+              <div class="metric-dot dot-cyan"></div>
+              Answer Correctness
+              <span class="metric-score">target ≥ 0.75</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;display:flex;gap:6px;flex-wrap:wrap">
+        <div style="font-size:9px;background:#dcfce7;border:1px solid #86efac;border-radius:10px;padding:2px 9px;color:#166534;font-weight:600">Notebook: 04_ragas_eval.ipynb</div>
+        <div style="font-size:9px;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:2px 9px;color:#166534">Gemini-as-judge scoring</div>
+        <div style="font-size:9px;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:2px 9px;color:#166534">50-question golden set</div>
+      </div>
+    </div>
+
+    <!-- LOAD TEST -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-tag tag-red">⑤ Perf</span>
+        <span class="section-title">Load &amp; Latency Testing</span>
+      </div>
+
+      <div style="display:flex;gap:20px;flex-wrap:wrap">
+
+        <!-- Tools -->
+        <div>
+          <div style="font-size:9.5px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Tools</div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div class="box n-red" style="font-size:10px;padding:5px 10px">🦗 Locust</div>
+            <div class="box n-orange" style="font-size:10px;padding:5px 10px">⚡ k6</div>
+            <div class="box n-gray" style="font-size:10px;padding:5px 10px">📓 Notebook: 05_cache_latency</div>
+          </div>
+        </div>
+
+        <!-- Metrics -->
+        <div style="flex:1">
+          <div style="font-size:9.5px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">What We Measure</div>
+          <div class="metric-list">
+            <div class="metric-item">
+              <div class="metric-dot dot-red"></div>
+              P50 / P95 / P99 latency
+              <span class="metric-score">ms</span>
+            </div>
+            <div class="metric-item">
+              <div class="metric-dot dot-amber"></div>
+              Cache HIT vs MISS latency
+              <span class="metric-score">2ms vs 900ms</span>
+            </div>
+            <div class="metric-item">
+              <div class="metric-dot dot-blue"></div>
+              Throughput (RPS)
+              <span class="metric-score">req/s</span>
+            </div>
+            <div class="metric-item">
+              <div class="metric-dot dot-purple"></div>
+              Concurrent user scaling
+              <span class="metric-score">10→100 users</span>
+            </div>
+            <div class="metric-item">
+              <div class="metric-dot dot-green"></div>
+              Error rate under load
+              <span class="metric-score">target &lt; 0.1%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;display:flex;gap:6px;flex-wrap:wrap">
+        <div style="font-size:9px;background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:2px 9px;color:#991b1b;font-weight:600">Cloud Run autoscale: 1–10 instances</div>
+        <div style="font-size:9px;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:2px 9px;color:#9a3412">max-concurrency=80</div>
+        <div style="font-size:9px;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:2px 9px;color:#9a3412">Memorystore BASIC tier</div>
+      </div>
+    </div>
+
+  </div><!-- /two-col -->
+
+
+  <!-- ═══════════════════════════════════════════════════════
+       SECTION 5 — GCP SERVICE MAP
+       ═══════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-tag tag-blue">⑥ Infra</span>
+      <span class="section-title">GCP Service Map</span>
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start">
+
+      <div style="display:flex;flex-direction:column;gap:5px;min-width:160px">
+        <div style="font-size:9.5px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Compute</div>
+        <div class="box n-blue" style="font-size:10px;padding:5px 12px">Cloud Run (API + UI)</div>
+        <div class="box n-blue" style="font-size:10px;padding:5px 12px">Cloud Build (CI/CD)</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:5px;min-width:160px">
+        <div style="font-size:9.5px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">AI / ML</div>
+        <div class="box n-purple" style="font-size:10px;padding:5px 12px">Vertex AI Vector Search 2.0</div>
+        <div class="box n-purple" style="font-size:10px;padding:5px 12px">Gemini 2.5 Flash</div>
+        <div class="box n-purple" style="font-size:10px;padding:5px 12px">text-embedding-005</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:5px;min-width:160px">
+        <div style="font-size:9.5px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Storage</div>
+        <div class="box n-yellow" style="font-size:10px;padding:5px 12px">Cloud Storage (GCS)</div>
+        <div class="box n-cyan" style="font-size:10px;padding:5px 12px">Cloud Memorystore (Redis)</div>
+        <div class="box n-gray" style="font-size:10px;padding:5px 12px">Artifact Registry</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:5px;min-width:160px">
+        <div style="font-size:9.5px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Networking</div>
+        <div class="box n-gray" style="font-size:10px;padding:5px 12px">VPC (us-central1)</div>
+        <div class="box n-gray" style="font-size:10px;padding:5px 12px">Serverless VPC Access</div>
+        <div class="box n-gray" style="font-size:10px;padding:5px 12px">Cloud Run → Redis (10.x.x.x)</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:5px;min-width:160px">
+        <div style="font-size:9.5px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Observability</div>
+        <div class="box n-green" style="font-size:10px;padding:5px 12px">Cloud Logging</div>
+        <div class="box n-green" style="font-size:10px;padding:5px 12px">Cloud Monitoring</div>
+        <div class="box n-green" style="font-size:10px;padding:5px 12px">/health · /cache/stats</div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /canvas -->
+
+</body>
+</html>

@@ -261,3 +261,150 @@ As more RAG designs are added, you can explore each folder and follow the corres
 
 
 This repository is organized so that each RAG design has its own folder and its own local setup instructions. As more designs are added, you can enter the relevant folder and follow its dedicated README.md.
+
+---
+
+## AirbnbAgenticRAG
+
+This folder contains a **production-ready Agentic RAG system** built with **Vertex AI Vector Search 2.0**, **Gemini 2.5 Flash**, and deployed on **Google Cloud Run**.
+
+This design demonstrates an **advanced agentic RAG pattern** that extends beyond simple semantic retrieval by incorporating **function calling** and **structured query processing** for domain-specific search scenarios.
+
+### Key Technologies
+
+This design uses:
+
+- **Vertex AI Vector Search 2.0 with ScaNN ANN Index**
+- **Gemini 2.5 Flash** (generation + function calling)
+- **text-embedding-005** (768-dimensional embeddings)
+- **Cloud Memorystore Redis** (semantic caching)
+- **FastAPI** (backend API)
+- **Streamlit** (frontend UI)
+- **Cloud Run** (serverless deployment)
+
+---
+
+## What It Does
+
+The system provides two distinct search modes over **3,000 real Airbnb listings in Austin, TX**:
+
+| Endpoint | Strategy | Best For |
+|----------|----------|----------|
+| `POST /rag` | **Simple RAG** — embed query → ANN search → Gemini | Open-ended, preference-based queries |
+| `POST /ask` | **Agentic RAG** — Gemini extracts filters → `find_rentals()` tool → filtered results → Gemini | Structured queries with price, bedrooms, room type, neighbourhood constraints |
+
+Both endpoints leverage a **Redis semantic cache** where cache hits return results in **under 2ms**, completely bypassing Vector Search and Gemini calls.
+
+---
+
+## Architecture Overview
+
+The system follows a **two-phase architecture**:
+
+### Offline Phase (Run Once)
+1. Documents stored in **GCS Bucket**
+2. Data ingestion pipeline (`02_ingest.py`) generates embeddings using **text-embedding-005**
+3. DataObjects (metadata + 768-dim vectors) stored in **Vector Search 2.0 Collection**
+4. **ScaNN ANN Index** built for fast approximate nearest neighbor search
+
+### Online Phase (Cloud Run - Scales to Zero)
+1. **Streamlit UI** sends user queries to **FastAPI backend**
+2. **Redis cache check** — HIT returns cached result (~1ms)
+3. **MISS**: Query embedding → Vector Search ScaNN ANN search
+4. Parallel `GetDataObject` calls fetch metadata
+5. Two retrieval strategies:
+   - `/rag`: Retrieved context → Gemini → answer
+   - `/ask`: Gemini ReAct loop with function calling → answer
+6. Result cached in Redis with TTL
+
+---
+
+## Design Summary
+
+This implementation showcases an **advanced agentic RAG pattern** with several key features:
+
+| Feature | Implementation |
+|---------|---------------|
+| **Dual Search Modes** | Simple semantic retrieval + agentic function calling |
+| **Semantic Caching** | Redis Memorystore with TTL-based expiry (0.5-2ms reads) |
+| **Function Calling** | Gemini ReAct loop with `find_rentals()` tool for structured filtering |
+| **Production Ready** | FastAPI backend + Streamlit UI deployed on Cloud Run |
+| **ScaNN ANN Search** | Fast approximate nearest neighbor search on Vector Search 2.0 |
+| **Parallel Fetching** | ThreadPoolExecutor for concurrent metadata retrieval |
+| **Evaluation Framework** | RAGAS metrics, load testing with Locust |
+
+---
+
+## Why This Design
+
+This architecture demonstrates several advanced RAG concepts:
+
+- **Agentic RAG with function calling** for complex, structured queries
+- **Semantic caching** for sub-2ms response times on repeated queries
+- **Dual retrieval strategies** optimized for different query types
+- **Production-grade deployment** on serverless Cloud Run
+- **Comprehensive evaluation** with metrics and load testing
+- **Separation of concerns** between API and UI
+- **Cost optimization** through caching and scales-to-zero architecture
+
+This design is ideal for teams building **production RAG systems** that need to handle both **open-ended semantic queries** and **structured filter-based queries** efficiently.
+
+---
+
+## Key Capabilities
+
+- **Real-time semantic search** over 3,000 Airbnb listings
+- **Agentic query processing** with automatic filter extraction
+- **Sub-2ms cached responses** via Redis Memorystore
+- **FastAPI backend** with health checks and cache statistics
+- **Streamlit chat interface** for interactive exploration
+- **RAGAS evaluation** with answer relevance and filter accuracy metrics
+- **Locust load testing** for performance validation
+- **Complete deployment automation** with shell scripts
+
+---
+
+## How to Run
+
+Clone the repository:
+
+```bash
+git clone https://github.com/DhunganaKB/RAG_VertexAI_VectorSearch.git
+```
+
+Move into the repository root:
+
+```bash
+cd RAG_VertexAI_VectorSearch
+```
+
+Go to the AirbnbAgenticRAG folder:
+
+```bash
+cd AirbnbAgenticRAG
+```
+
+Follow the **complete step-by-step deployment guide** in the folder's `README.md` or open `ragrun.html` for an interactive guide covering:
+
+1. GCP infrastructure setup
+2. Data ingestion pipeline
+3. Local development
+4. Cloud Run deployment
+5. Endpoint verification
+6. RAGAS evaluation
+7. Load testing with Locust
+
+Each step includes detailed commands and validation checks.
+
+---
+
+## Notes
+
+The **AirbnbAgenticRAG** project represents a significant evolution from the earlier RAG designs in this repository. It demonstrates how to build a **production-grade agentic RAG system** that combines:
+
+- The simplified architecture of Vector Search 2.0
+- Advanced agentic patterns with function calling
+- Production concerns like caching, monitoring, and load testing
+- Comprehensive evaluation frameworks
+
+This design serves as a reference implementation for teams looking to deploy **scalable, production-ready RAG systems** on Google Cloud with advanced agentic capabilities.

@@ -384,7 +384,7 @@ Go to the AirbnbAgenticRAG folder:
 cd AirbnbAgenticRAG
 ```
 
-Follow the **complete step-by-step deployment guide** in the folder's `README.md` or open `ragrun.html` for an interactive guide covering:
+Follow the **complete step-by-step deployment guide** in the folder's `README.md` or see `Run_Detail_Steps.md` for detailed instructions covering:
 
 1. GCP infrastructure setup
 2. Data ingestion pipeline

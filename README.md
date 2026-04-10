@@ -8,6 +8,7 @@ This repository is intended to help experiment with, compare, and extend differe
 
 ### `SimpleVectorSearch_RAG`
 
+
 This folder contains a **scalable RAG design** built with:
 
 - **Vertex AI Vector Search**
